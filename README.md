@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[Features](#✨-features) • [Quick Start](#🚀-quick-start) • [Usage](#📖-usage) • [Configuration](#⚙️-yaml-configuration-parameters) • [Strategies](#🎯-load-balancing-strategies) • [Health Checking](#🏥-health-checking)
+[Features](#-features) • [Quick Start](#-quick-start) • [Usage](#-usage) • [Configuration](#user-content-️-yaml-configuration-parameters) • [Strategies](#user-content--load-balancing-strategies) • [Health Checking](#-health-checking)
 
 </div>
 
