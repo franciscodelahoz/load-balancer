@@ -168,12 +168,27 @@ func (hc *HealthChecker) performHealthChecks() {
 			hc.results[b.URL.String()] = result
 			hc.mutex.Unlock()
 
-			b.SetHealth(result.Status == StatusHealthy)
+			if result.Status == StatusHealthy {
+				b.IncreaseConsecutiveSuccesses()
+				b.ResetConsecutiveErrors()
 
-			if result.Error != nil || result.Status == StatusUnhealthy {
-				log.Printf("❌ Backend %s unhealthy: %v", b.URL.String(), result.Error)
+				log.Printf("✅ Backend %s health check passed (latency: %s)", b.URL.String(), result.Latency)
+
+				if b.GetConsecutiveSuccesses() >= hc.config.SuccessThreshold && !b.IsAlive() {
+					b.SetHealth(true)
+					log.Printf("✅ Backend %s marked as healthy after %d consecutive successes", b.URL.String(), b.GetConsecutiveSuccesses())
+				}
+
 			} else {
-				log.Printf("✅ Backend %s healthy (latency: %v)", b.URL.String(), result.Latency)
+				b.ResetConsecutiveSuccesses()
+				b.IncreaseConsecutiveErrors()
+
+				log.Printf("❌ Backend %s health check failed: %v", b.URL.String(), result.Error)
+
+				if b.GetConsecutiveErrors() >= hc.config.FailureThreshold && b.IsAlive() {
+					b.SetHealth(false)
+					log.Printf("❌ Backend %s marked as unhealthy after %d consecutive errors", b.URL.String(), b.GetConsecutiveErrors())
+				}
 			}
 		}()
 	}

@@ -24,17 +24,29 @@ func (cfg *Config) applyDefaults() {
 		enabled := DefaultEnabled
 		cfg.HealthCheck.Enabled = &enabled
 	}
+
 	if cfg.HealthCheck.Interval == 0 {
 		cfg.HealthCheck.Interval = DefaultInterval
 	}
+
 	if cfg.HealthCheck.Timeout == 0 {
 		cfg.HealthCheck.Timeout = DefaultTimeout
 	}
+
 	if cfg.HealthCheck.Path == "" {
 		cfg.HealthCheck.Path = DefaultPath
 	}
+
 	if cfg.HealthCheck.Method == "" {
 		cfg.HealthCheck.Method = DefaultMethod
+	}
+
+	if cfg.HealthCheck.SuccessThreshold == 0 {
+		cfg.HealthCheck.SuccessThreshold = DefaultSuccessThreshold
+	}
+
+	if cfg.HealthCheck.FailureThreshold == 0 {
+		cfg.HealthCheck.FailureThreshold = DefaultFailureThreshold
 	}
 
 	// Backend defaults
@@ -64,10 +76,12 @@ func LoadConfig(configPath string) (*Config, error) {
 
 func (cfg *Config) GetHealthConfig() *health.Config {
 	return &health.Config{
-		Interval: cfg.HealthCheck.Interval,
-		Timeout:  cfg.HealthCheck.Timeout,
-		Path:     cfg.HealthCheck.Path,
-		Method:   cfg.HealthCheck.Method,
+		Interval:         cfg.HealthCheck.Interval,
+		Timeout:          cfg.HealthCheck.Timeout,
+		Path:             cfg.HealthCheck.Path,
+		Method:           cfg.HealthCheck.Method,
+		SuccessThreshold: cfg.HealthCheck.SuccessThreshold,
+		FailureThreshold: cfg.HealthCheck.FailureThreshold,
 	}
 }
 

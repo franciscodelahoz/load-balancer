@@ -2,11 +2,7 @@
 
 <div align="center">
 
-![Go Version](https://img.shields.io/badge/Go-1.21+-blue.svg)
-![License](https://img.shields.io/badge/License-MIT-green.svg)
-
-
-[Features](#-features) • [Quick Start](#-quick-start) • [Configuration](#-configuration) • [Strategies](#-load-balancing-strategies) • [Health Checking](#-health-checking)
+[Features](#✨-features) • [Quick Start](#🚀-quick-start) • [Usage](#📖-usage) • [Configuration](#⚙️-yaml-configuration-parameters) • [Strategies](#🎯-load-balancing-strategies) • [Health Checking](#🏥-health-checking)
 
 </div>
 
@@ -18,287 +14,224 @@ A **load balancer** built with Go that provides intelligent traffic distribution
 
 ## ✨ Features
 
-- **🎯 Multiple Load Balancing Strategies**
-  - Round Robin
-  - Weighted Round Robin
-  - Smooth Weighted Round Robin
-  - Least Connections
-  - Random
-
-- **🏥 Intelligent Health Checking**
-  - Configurable health check intervals
-  - Automatic failure detection
-  - Backend recovery monitoring
-  - Concurrent health checks
-
-- **⚙️ Safe Architecture**
-  - Thread-safe operations
-  - Graceful shutdown
-  - Comprehensive error handling
-  - Request metrics and logging
-
-- **📝 Flexible Configuration**
-  - YAML-based configuration
-  - Environment-based defaults
-  - Validation and warnings
-  - Minimal configuration required
+- **Multiple Load Balancing Strategies:** Round Robin, Weighted, Smooth Weighted, Least Connections, Random
+- **Intelligent Health Checking:** Concurrent checks, recovery, configurable intervals
+- **Safe Architecture:** Thread-safe, graceful shutdown and logging
+- **Flexible Configuration:** YAML, environment defaults, minimal setup
 
 ## 🚀 Quick Start
 
-### Prerequisites
-
-- Go 1.21 or higher
-- Network access to backend servers
-
-### Installation
-
 ```bash
-# Clone the repository
 git clone https://github.com/franciscodelahoz/load-balancer.git
 cd load-balancer
-
-# Install dependencies
 go mod tidy
-
-# Build the load balancer
 go build -o load-balancer ./cmd/server
-
-# Run with default configuration
 ./load-balancer
-```
-
-### Docker (Optional)
-
-```bash
-# Build Docker image
-docker build -t franciscodelahoz/load-balancer .
-
-# Run container
-docker run -p 8080:8080 -v $(pwd)/config.yaml:/config.yaml franciscodelahoz/load-balancer
 ```
 
 ## 📖 Usage
 
-### Basic Usage
-
 ```bash
-# Run with default configuration
 go run ./cmd/server/main.go
-
-# Run with custom config file
 go run ./cmd/server/main.go -config=production.yaml
-
-# Test the load balancer
 curl http://localhost:8080/
 ```
 
-### Example Backend Servers
-
-Start some test backends:
+### Example Test Backends
 
 ```bash
-# Terminal 1 - Backend 1
+# Terminal 1
 python3 -m http.server 3001
-
-# Terminal 2 - Backend 2
+# Terminal 2
 python3 -m http.server 3002
-
-# Terminal 3 - Backend 3
-python3 -m http.server 3003
 ```
 
-## ⚙️ Configuration
+---
 
-### Basic Configuration
+## ⚙️ YAML Configuration Parameters
+
+All configuration is done via a YAML file. Below, each parameter is explained in detail, including its purpose and default value if omitted.
+
+---
+
+### **server**
+
+- **port**
+  *(default: `8080`)*
+  Port on which the load balancer HTTP server listens.
+
+### **load_balancer**
+
+- **strategy**
+  *(default: `"round-robin"`)*
+  Load balancing algorithm. Options: `"round-robin"`, `"weighted-round-robin"`, `"smooth-weighted-round-robin"`, `"least-connections"`, `"random"`.
+
+### **backends**
+
+- **url**
+  *(required)*
+  The URL of the backend service.
+
+- **weight**
+  *(default: `1`)*
+  Relative weight for distributing traffic. Higher values mean more requests sent to this backend.
+
+### **health_check**
+
+- **enabled**
+  *(default: `true`)*
+  Enables or disables health checking.
+
+- **interval**
+  *(default: `10s`)*
+  How often to perform health checks (Go duration format, e.g., `10s`, `1m`).
+
+- **timeout**
+  *(default: `5s`)*
+  Timeout for each health check request.
+
+- **path**
+  *(default: `"/health"`)*
+  Path to request on each backend for health checking.
+
+- **method**
+  *(default: `"GET"`)*
+  HTTP method to use for health checks.
+
+- **success_threshold**
+  *(default: `3`)*
+  Number of consecutive successful health checks required before a backend is marked healthy.
+
+- **failure_threshold**
+  *(default: `3`)*
+  Number of consecutive failed health checks required before a backend is marked unhealthy.
+
+---
+
+### **Examples**
+
+**Minimal Configuration:**
 
 ```yaml
-# config.yaml
+backends:
+  - url: "http://service-1:8080"
+```
+
+**Full Configuration:**
+
+```yaml
 server:
   port: 8080
 
 load_balancer:
-  strategy: "smooth-weighted-round-robin"
-
-backends:
-  - url: "http://localhost:3001"
-    weight: 1
-  - url: "http://localhost:3002"
-    weight: 2
-  - url: "http://localhost:3003"
-    weight: 3
-
-health_check:
-  enabled: true
-  interval: 10s
-  timeout: 5s
-  path: "/"
-  method: "GET"
-```
-
-### Production Configuration
-
-```yaml
-# production.yaml
-server:
-  port: 80
-
-load_balancer:
   strategy: "least-connections"
 
 backends:
-  - url: "https://api-1.company.com"
-    weight: 3
-  - url: "https://api-2.company.com"
+  - url: "http://service-1:8080"
     weight: 2
-  - url: "https://api-3.company.com"
-    weight: 1
 
 health_check:
   enabled: true
   interval: 30s
-  timeout: 10s
+  timeout: 5s
   path: "/health"
   method: "GET"
+  success_threshold: 5
+  failure_threshold: 2
 ```
 
-### Minimal Configuration
+---
 
-```yaml
-# Only specify what you need - rest uses defaults
-backends:
-  - url: "http://service-1:8080"
-  - url: "http://service-2:8080"
-```
+## ⚠️ Health Endpoint Guidance
 
-## 🎯 Load Balancing Strategies
+The load balancer marks a backend as *healthy* when the configured health endpoint returns an HTTP 2xx status. If your application responds with 200 OK for unknown or invalid routes, the health check will always succeed and give a false positive.
 
-### Round Robin
-Distributes requests sequentially across backends.
+### Recommendations:
+- Expose a dedicated, lightweight health endpoint (e.g. /health) that returns 200 only when the service is actually healthy.
+- Return 404/4xx for unknown or invalid paths.
+- Keep health checks fast — avoid expensive operations.
 
-```yaml
-load_balancer:
-  strategy: "round-robin"
-```
+### Quick test:
 
-### Weighted Round Robin
-Distributes requests based on backend weights.
-
-```yaml
-load_balancer:
-  strategy: "weighted-round-robin"
-backends:
-  - url: "http://powerful-server:8080"
-    weight: 3
-  - url: "http://normal-server:8080"
-    weight: 1
-```
-
-### Smooth Weighted Round Robin
-Advanced weighted distribution with smooth traffic flow.
-
-```yaml
-load_balancer:
-  strategy: "smooth-weighted-round-robin"
-```
-
-### Least Connections
-Routes to the backend with fewest active connections.
-
-```yaml
-load_balancer:
-  strategy: "least-connections"
-```
-
-### Random
-Randomly selects a backend for each request.
-
-```yaml
-load_balancer:
-  strategy: "random"
-```
-
-## 🏥 Health Checking
-
-### Configuration Options
-
-```yaml
-health_check:
-  enabled: true
-  interval: 10s        # How often to check
-  timeout: 5s          # Request timeout
-  path: "/health"      # Health endpoint
-  method: "GET"        # HTTP method
-```
-
-### Backend Health Endpoints
-
-Implement health endpoints in your backends:
-
-**Express.js Example:**
-```javascript
-app.get('/health', (req, res) => {
-  res.status(200).json({
-    status: 'healthy',
-    timestamp: Date.now()
-  });
-});
+```bash
+curl -i http://your-backend/health         # must return 200
+curl -i http://your-backend/invalid-path   # must NOT return 200
 ```
 
 **Go Example:**
 ```go
 http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+    w.Header().Set("Content-Type", "application/json")
     w.WriteHeader(http.StatusOK)
-    json.NewEncoder(w).Encode(map[string]interface{}{
-        "status": "healthy",
-        "timestamp": time.Now().Unix(),
-    })
+    w.Write([]byte(`{"status":"ok"}`))
+})
+
+http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+    http.NotFound(w, r)
 })
 ```
 
-### ⚠️ Important: Health Checking Best Practices
+---
+
+## 🎯 Load Balancing Strategies
+
+- `round-robin`
+- `weighted-round-robin`
+- `smooth-weighted-round-robin`
+- `least-connections`
+- `random`
+
+Set the strategy in your YAML config:
 
 ```yaml
-# ✅ Recommended for production environments
-health_check:
-  enabled: true  # Enables automatic recovery
-  interval: 30s
-  timeout: 5s
-  path: "/health"
+load_balancer:
+  strategy: "smooth-weighted-round-robin"
 ```
 
-**Why Health Checking Matters:**
-- ✅ **Auto-recovery**: Failed backends automatically come back online
-- ⚡ **Zero downtime**: Traffic routing adapts to backend status
-- 📊 **Observability**: Real-time backend health monitoring
+---
+
+## 🏥 Health Checking
+
+**Config:**
+```yaml
+health_check:
+  enabled: true
+  interval: 10s
+  timeout: 5s
+  path: "/health"
+  method: "GET"
+```
+
+**Best Practices:**
+- Enable health checking for auto-recovery
+- Use a dedicated health endpoint
+- Set proper intervals and timeouts
+
+---
 
 ## 📊 Monitoring & Metrics
 
-### Request Logging
-
-The load balancer provides comprehensive logging:
-
-```
-🚀 Load Balancer running on :8080
-📊 Strategy: smooth-weighted-round-robin
-🏢 Backends: 3 configured
-✅ Added backend: http://localhost:3001 (weight: 1)
-✅ Added backend: http://localhost:3002 (weight: 2)
-🏥 Health checking enabled (interval: 10s)
-🎯 /api/users -> http://localhost:3002
-✅ Backend http://localhost:3001 healthy (latency: 2ms)
-```
-
-### Health Status
-
-Monitor backend health in real-time through logs:
+- **Logging:**
+  Logs show strategy, backend states, health results, routing decisions.
 
 ```
-✅ Backend http://localhost:3001 healthy (latency: 5ms)
-✅ Backend http://localhost:3002 healthy (latency: 3ms)
-❌ Backend http://localhost:3003 unhealthy: connection refused
+2025/09/10 10:50:24 🚀 Starting Load Balancer...
+2025/09/10 10:50:24 ✅ Added backend: http://localhost:3002 (weight: 1)
+2025/09/10 10:50:24 ✅ Registered backend for health checking: http://localhost:3002
+2025/09/10 10:50:24 🏥 Health checker started with 1 backends
+2025/09/10 10:50:24 🏥 Health checking enabled (interval: 10s)
+2025/09/10 10:50:24 🚀 Load Balancer running on ::8080
+2025/09/10 10:50:24 📊 Strategy: Smooth Weighted Round Robin
+2025/09/10 10:50:24 🏢 Admin API: http://localhost::8080/admin/health
+2025/09/10 10:50:29 ✅ Backend http://localhost:3002 health check passed (latency: 5.055478666s)
+2025/09/10 10:51:39 ❌ Backend http://localhost:3002 health check failed: unexpected HTTP status from backend: 404
 ```
+
+---
 
 ## 🏗️ Architecture
+
+The diagram below shows the overall structure and flow:
 
 ```
                     Load Balancer
@@ -317,17 +250,18 @@ Monitor backend health in real-time through logs:
             Backend1  Backend2  Backend3
 ```
 
-### Core Components
+- **Load Balancer:** Orchestrates incoming traffic and applies load balancing logic.
+- **Strategies Manager:** Chooses the backend based on selected algorithm.
+- **Health Checker:** Continuously checks backend health and availability.
+- **Server Pool:** Maintains list and state of backend servers.
+- **Proxy Handler:** Handles request forwarding and error responses.
+- **Backends:** The actual application servers receiving requests.
 
-- **Load Balancer**: Main orchestrator and traffic distributor
-- **Strategy**: Pluggable algorithms for backend selection
-- **Health Checker**: Monitors backend availability and recovery
-- **Server Pool**: Manages backend lifecycle and state
-- **Proxy Handler**: HTTP request forwarding and error handling
+---
 
 ## 🛠️ Development
 
-### Project Structure
+**Project Structure:**
 
 ```
 load-balancer/
@@ -345,34 +279,22 @@ load-balancer/
 └── README.md
 ```
 
-### Running the Application
-
+**Build & Run:**
 ```bash
-# Development mode
 go run ./cmd/server/main.go
-
-# With custom config
-go run ./cmd/server/main.go -config=custom.yaml
-
-# Build and run
 go build -o load-balancer ./cmd/server
 ./load-balancer
 ```
 
-### Building for Production
-
+**Production Build:**
 ```bash
-# Build optimized binary
 go build -ldflags="-w -s" -o load-balancer ./cmd/server
-
-# Cross-compile for Linux
 GOOS=linux GOARCH=amd64 go build -o load-balancer-linux ./cmd/server
 ```
 
-### Roadmap
-
+**Roadmap:**
 - [ ] Unit tests implementation
 - [ ] Metrics endpoint (`/metrics`)
-- [ ] Docker Compose examples
+- [ ] Docker Compose setup and examples
 - [ ] Performance benchmarks
 - [ ] Admin API for runtime configuration
